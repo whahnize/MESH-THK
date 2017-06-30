@@ -24,11 +24,12 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE ignoreMe0, LPSTR ignoreMe1, INT ig
     HDC hDC;
     HGLRC hRC;
     int pixelFormat;
-    GLenum err;
     MSG msg = {0};
     LARGE_INTEGER previousTime;
     LARGE_INTEGER freqTime;
-
+	GLfloat pixelMap[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
+	GLfloat thicknessMap[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
+	GLenum err;
     wc.hCursor = LoadCursor(0, IDC_ARROW);
     RegisterClassExA(&wc);
 
@@ -181,10 +182,24 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE ignoreMe0, LPSTR ignoreMe1, INT ig
             deltaTime = elapsed * 1000000.0 / freqTime.QuadPart;
             previousTime = currentTime;
 
+			
+
             PezUpdate((unsigned int) deltaTime);
             PezRender(0);
-            SwapBuffers(hDC);
-            PezCheckCondition(glGetError() == GL_NO_ERROR, "OpenGL error.\n");
+			SwapBuffers(hDC);
+			glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMap);
+            //  (0,0) => bottom left corner in pixel map, upper left corner in thicknessMap
+			FILE *f = fopen("out.ppm", "wb");
+			fprintf(f, "P6\n%i %i 255\n", PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT);
+			for (int y = PEZ_VIEWPORT_HEIGHT-1; y>=0; y--) {
+				for (int x = 0; x<PEZ_VIEWPORT_WIDTH; x++) {
+					thicknessMap[PEZ_VIEWPORT_HEIGHT-y-1][x] = pixelMap[y][x];
+					fputc(pixelMap[y][x]*255, f);  // 0 .. 255
+					fputc(pixelMap[y][x] * 255, f);  // 0 .. 255
+					fputc(pixelMap[y][x] * 255, f);  // 0 .. 255
+				}
+			}
+			fclose(f);
         }
     }
 

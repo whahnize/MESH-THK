@@ -14,6 +14,8 @@ static GLuint OffscreenTexture;
 static Mesh BuddhaMesh;
 static GLuint QuadVbo;
 
+GLfloat depthMap[PEZ_VIEWPORT_WIDTH*PEZ_VIEWPORT_HEIGHT] = {};
+
 static void LoadUniforms(GLuint program)
 {
     GLint modelview = glGetUniformLocation(program, "Modelview");
@@ -87,7 +89,6 @@ static void RenderBuddha()
     int positionSlot = glGetAttribLocation(DepthProgram, "Position");
     glVertexAttribPointer(positionSlot, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
     glEnableVertexAttribArray(positionSlot);
-
     // glBindBuffer(GL_ARRAY_BUFFER, BuddhaMesh.Normals);
     // int normalSlot = glGetAttribLocation(DepthProgram, "Normal");
     // glVertexAttribPointer(normalSlot, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
@@ -112,15 +113,17 @@ static void RenderBuddha()
     glUniform1f(depthScale, -1.0f);
     glCullFace(GL_BACK);
     glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
+	
 #endif
-
+	
     glDisable(GL_CULL_FACE);
     glDisable(GL_BLEND);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(positionSlot);
     //glDisableVertexAttribArray(normalSlot);
-
+	//GLfloat depthMap1[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
+	//glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depthMap1);
 #ifdef LIGHTING
     glDisable(GL_DEPTH_TEST);
 #endif
@@ -142,6 +145,7 @@ static void RenderQuad()
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(positionSlot);
+
 }
 
 void PezRender(GLuint windowFbo)
@@ -150,9 +154,9 @@ void PezRender(GLuint windowFbo)
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
     RenderBuddha();
-   
+	//glClearColor(1, 1, 1, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, windowFbo);
-    glClearColor(1, 1, 1, 1);
+    //glClearColor(1, 1, 1, 0);
     glClear(GL_COLOR_BUFFER_BIT);
     RenderQuad();
 }

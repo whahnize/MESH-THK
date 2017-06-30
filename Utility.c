@@ -8,12 +8,13 @@
 Mesh CreateMesh(const char* ctmFile)
 {
     Mesh mesh = {0, 0, 0, 0};
-    
+    GLfloat depthMap[PEZ_VIEWPORT_WIDTH*PEZ_VIEWPORT_HEIGHT] = {};
     char qualifiedPath[256] = {0};
     strcpy(qualifiedPath, PezResourcePath());
     strcat(qualifiedPath, "/model/");
     strcat(qualifiedPath, ctmFile);
-    
+	
+
     // Open the CTM file:
     CTMcontext ctmContext = ctmNewContext(CTM_IMPORT);
     ctmLoad(ctmContext, qualifiedPath);

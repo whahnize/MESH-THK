@@ -34,7 +34,7 @@ varying vec3 vNormal;
 varying vec3 vPosition;
 void main()
 {
-    vec3 N = normalize(vNormal);
+    //vec3 N = normalize(vNormal);
     vec3 P = vPosition;
     vec3 I = normalize(P);
     //float cosTheta = abs(dot(I, N));
@@ -78,10 +78,13 @@ void main()
     {
         discard;
     }
-    float sigma = 30.0;
-    float fresnel = 1.0 - texture2D(Sampler, texCoord).g;
-    float intensity = fresnel * exp(-sigma * thickness);
-    gl_FragColor = vec4(intensity * DiffuseMaterial, 1);
+    float sigma = 8.0;
+	float intensity = sigma * thickness; 
+    //float intensity = log(sigma * thickness);
+	//float fresnel = 1.0 - texture2D(Sampler, texCoord).g;
+	//float intensity = fresnel * exp(-sigma * thickness);
+    //gl_FragColor = vec4(fresnel * DiffuseMaterial, 1);
+	gl_FragColor = vec4(intensity,intensity,intensity, 0);
 }
 
 -- Fragment.Blit

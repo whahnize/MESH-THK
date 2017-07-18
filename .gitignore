@@ -1,1 +1,8 @@
-**/win/Debug
+﻿**/win/Debug
+/win/Release
+/win/*.ctm
+/win/*.ppm
+
+*.suo
+*VC.db
+*vcxproj

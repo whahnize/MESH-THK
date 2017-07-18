@@ -2,7 +2,7 @@
 #include "Utility.h"
 #include <vectormath.h>
 #include <stdlib.h>
-
+#include <string.h>
 //#define LIGHTING
 
 static GLuint DepthProgram;
@@ -78,7 +78,7 @@ static void LoadUniforms(GLuint program)
     }
 }
 
-static void RenderBuddha()
+static void RenderBuddha(enum CULL_FACE face)
 {
     glUseProgram(DepthProgram);
     LoadUniforms(DepthProgram);
@@ -104,15 +104,28 @@ static void RenderBuddha()
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE);
-    GLint depthScale = glGetUniformLocation(DepthProgram, "DepthScale");
+    GLint radiusScale = glGetUniformLocation(DepthProgram, "RadiusScale");
+	glUniform1f(radiusScale, 1.0f);
+	switch (face)
+	{
+	case CULL_FRONT:
+		glCullFace(GL_BACK);
+		glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
+			break;
+	case CULL_BACK:
+		glCullFace(GL_FRONT);
+		glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
+			break;
+	}
 
-    glUniform1f(depthScale, 1.0f);
-    glCullFace(GL_FRONT);
-    glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
-    
-    glUniform1f(depthScale, -1.0f);
-    glCullFace(GL_BACK);
-    glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
+
+	//glUniform1f(radiusScale, -1.0f);
+	//glCullFace(GL_FRONT);
+	//glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
+
+	//glUniform1f(radiusScale, -1.0f);
+	//glCullFace(GL_FRONT);
+	//glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
 	
 #endif
 	
@@ -148,22 +161,24 @@ static void RenderQuad()
 
 }
 
-void PezRender(GLuint windowFbo)
+void PezRender(enum CULL_FACE face)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, OffscreenFbo);
     glClearColor(0, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    RenderBuddha();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    RenderBuddha(face);
 	//glClearColor(1, 1, 1, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, windowFbo);
+    //glBindFramebuffer(GL_FRAMEBUFFER, windowFbo);
     //glClearColor(1, 1, 1, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    RenderQuad();
+    //glClear(GL_COLOR_BUFFER_BIT);
+    //RenderQuad();
 }
 
 const char* PezInitialize(int width, int height)
 {
-    BuddhaMesh = CreateMesh("venus.ctm");
+	char buf[100];
+	strcpy(buf, MODEL);
+    BuddhaMesh = CreateMesh(strcat(buf,".ctm"));
     QuadVbo = CreateQuad(-1, -1, 1, 1);
     
 #ifdef LIGHTING
@@ -171,33 +186,33 @@ const char* PezInitialize(int width, int height)
     AbsorptionProgram = CreateProgram("Glass.Vertex.Quad", "Glass.Fragment.Blit" SUFFIX);
 #else
     DepthProgram = CreateProgram("Glass.Vertex", "Glass.Fragment.Depth" SUFFIX);
-    AbsorptionProgram = CreateProgram("Glass.Vertex.Quad", "Glass.Fragment.Absorption" SUFFIX);
+    //AbsorptionProgram = CreateProgram("Glass.Vertex.Quad", "Glass.Fragment.Absorption" SUFFIX);
 #endif
 
     // Create a floating-point render target:
-    GLuint textureHandle;
-    glGenTextures(1, &textureHandle);
-    glBindTexture(GL_TEXTURE_2D, textureHandle);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    //GLuint textureHandle;
+    //glGenTextures(1, &textureHandle);
+    //glBindTexture(GL_TEXTURE_2D, textureHandle);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     
 #ifdef LIGHTING
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 768, 1024, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 #elif defined(__IPAD__)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 768, 1024, 0, GL_LUMINANCE, GL_HALF_FLOAT_OES, 0);
 #else
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 768, 1024, 0, GL_RG, GL_FLOAT, 0);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 768, 1024, 0, GL_RG, GL_FLOAT, 0);
 #endif
     
-    PezCheckCondition(GL_NO_ERROR == glGetError(), "This passes on Mac OS X and iOS.");
-    OffscreenTexture = textureHandle;
+    //PezCheckCondition(GL_NO_ERROR == glGetError(), "This passes on Mac OS X and iOS.");
+    //OffscreenTexture = textureHandle;
     
-    GLuint fboHandle;
-    glGenFramebuffers(1, &fboHandle);
-    glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureHandle, 0);
+    //GLuint fboHandle;
+    //glGenFramebuffers(1, &fboHandle);
+    //glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
+    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureHandle, 0);
 
 #ifdef LIGHTING
     GLuint depthRenderbuffer;
@@ -207,11 +222,11 @@ const char* PezInitialize(int width, int height)
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
 #endif
 
-    PezCheckCondition(GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER), "This asserts on iOS and passes on Mac OS X.");
-    OffscreenFbo = fboHandle;
+    //PezCheckCondition(GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER), "This asserts on iOS and passes on Mac OS X.");
+    //OffscreenFbo = fboHandle;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glBindRenderbuffer(GL_RENDERBUFFER, 0);
     
     // Set up the projection matrix:
     const float HalfWidth = 0.5;
@@ -232,7 +247,7 @@ void PezUpdate(unsigned int elapsedMicroseconds)
     model = M4Mul(M4MakeTranslation(offset), model);
     model = M4Mul(model, M4MakeTranslation(V3Neg(offset)));
 
-    Point3 eyePosition = P3MakeFromElems(0, 10, 0);
+    Point3 eyePosition = P3MakeFromElems(0, 0, 10);
     Point3 targetPosition = P3MakeFromElems(0, 0, 0);
     Vector3 upVector = V3MakeFromElems(0, 0, 1);
     Matrix4 view = M4MakeLookAt(eyePosition, targetPosition, upVector);

@@ -3,17 +3,18 @@
 #include <glsw.h>
 #include <openctm.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <math.h> 
+#include <time.h>
 
 Mesh CreateMesh(const char* ctmFile)
 {
     Mesh mesh = {0, 0, 0, 0};
-    GLfloat depthMap[PEZ_VIEWPORT_WIDTH*PEZ_VIEWPORT_HEIGHT] = {};
     char qualifiedPath[256] = {0};
     strcpy(qualifiedPath, PezResourcePath());
     strcat(qualifiedPath, "/model/");
     strcat(qualifiedPath, ctmFile);
-	
 
     // Open the CTM file:
     CTMcontext ctmContext = ctmNewContext(CTM_IMPORT);
@@ -24,17 +25,59 @@ Mesh CreateMesh(const char* ctmFile)
     
     // Create the VBO for positions:
     const CTMfloat* positions = ctmGetFloatArray(ctmContext, CTM_VERTICES);
+	CTMfloat* zeroCenteredPositions =(CTMfloat*)malloc(sizeof(CTMfloat) * 3 * vertexCount);
+	CTMfloat* cylidericalPositions = (CTMfloat*)malloc(sizeof(CTMfloat) * 3 * vertexCount); // in theta, z, r order 
     if (positions) {
         GLuint handle;
+		GLfloat avr_x =0, avr_y=0, avr_z = 0;
+		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+			avr_x += positions[3 * vertex];
+			avr_y += positions[3 * vertex + 1];
+			avr_z += positions[3 * vertex + 2];
+		}
+		avr_x = avr_x / vertexCount;
+		avr_y = avr_y / vertexCount;
+		avr_z = avr_z / vertexCount;
+
+		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+			zeroCenteredPositions[3 * vertex] = positions[3 * vertex] - avr_x;
+			zeroCenteredPositions[3 * vertex + 1] = positions[3 * vertex + 1] - avr_y;
+			zeroCenteredPositions[3 * vertex + 2] = positions[3 * vertex + 2] - avr_z;
+		}
+		GLfloat maxR = -1;
+		GLfloat minR = 987654321;
+
+		GLfloat maxTheta = -1;
+		GLfloat minTheta = 987654321;
+
+		GLfloat maxZ = -1;
+		GLfloat minZ = 987654321;
+		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+			cylidericalPositions[3 * vertex] = (atan2(zeroCenteredPositions[3 * vertex + 1],zeroCenteredPositions[3 * vertex]) * 180 / Pi)/180.0; //theta; from [-pi/2,pi/2] to [-1.1]
+			cylidericalPositions[3 * vertex + 1] = zeroCenteredPositions[3 * vertex + 2]; // z
+			cylidericalPositions[3 * vertex + 2] = sqrt(pow(zeroCenteredPositions[3 * vertex],2)+ pow(zeroCenteredPositions[3 * vertex+1], 2)); // r
+
+			if (cylidericalPositions[3 * vertex] > maxTheta) maxTheta = cylidericalPositions[3 * vertex];
+			if (cylidericalPositions[3 * vertex] < minTheta) minTheta = cylidericalPositions[3 * vertex];
+			if (cylidericalPositions[3 * vertex+1] > maxZ) maxZ = cylidericalPositions[3 * vertex+1];
+			if (cylidericalPositions[3 * vertex+1] < minZ) minZ = cylidericalPositions[3 * vertex+1];
+			if (cylidericalPositions[3 * vertex + 2] > maxR) maxR = cylidericalPositions[3 * vertex + 2];
+			if (cylidericalPositions[3 * vertex + 2] < minR) minR = cylidericalPositions[3 * vertex + 2];
+		}
+		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+			cylidericalPositions[3 * vertex + 2] = cylidericalPositions[3 * vertex + 2] - minR;
+			cylidericalPositions[3 * vertex + 2] = cylidericalPositions[3 * vertex + 2]/1.25*(maxR-minR);
+		}
         GLsizeiptr size = vertexCount * sizeof(float) * 3;
         glGenBuffers(1, &handle);
         glBindBuffer(GL_ARRAY_BUFFER, handle);
-        glBufferData(GL_ARRAY_BUFFER, size, positions, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, size, cylidericalPositions, GL_STATIC_DRAW);
         mesh.Positions = handle;
     }
     
     // Create the VBO for normals:
     const CTMfloat* normals = ctmGetFloatArray(ctmContext, CTM_NORMALS);
+	unsigned int* faceBuffer;
     if (normals) {
         GLuint handle;
         GLsizeiptr size = vertexCount * sizeof(float) * 3;
@@ -50,35 +93,84 @@ Mesh CreateMesh(const char* ctmFile)
         
         GLsizeiptr bufferSize = faceCount * 3 * sizeof(unsigned int);
         
-        // Convert indices from 32-bit to 16-bit:
-        unsigned int* faceBuffer = (unsigned int*) malloc(bufferSize);
-        unsigned int* pDest = faceBuffer;
+        // Convert indices from 8-bit to 16-bit:
+        unsigned int* remainFaceBuffer = (unsigned int*) malloc(bufferSize);
+        unsigned int* pDest = remainFaceBuffer;
         const CTMuint* pSrc = indices;
         unsigned int remainingFaces = faceCount;
         while (remainingFaces--)
-        {
-            *pDest++ = (unsigned int) *pSrc++;
-            *pDest++ = (unsigned int) *pSrc++;
-            *pDest++ = (unsigned int) *pSrc++;
+		{
+			// boundaryIndicator indicates whether a face is on a boundary line of spliited model. When a face is on boundary line, its value is set to 1 or -1.
+			int boundaryIndicator = 0;
+			for (int vertice = 0; vertice < 3; vertice++) {
+				if (cylidericalPositions[3 * *(pSrc + vertice)] > 0) boundaryIndicator += 1;
+				else boundaryIndicator -= 1;
+			}
+			if (!(boundaryIndicator == -1 || boundaryIndicator == 1) || pow(cylidericalPositions[3 * *pSrc],2)<0.5) { // when a face is not on the boundary
+				*pDest++ = (unsigned int)*pSrc++;
+				*pDest++ = (unsigned int)*pSrc++;
+				*pDest++ = (unsigned int)*pSrc++;
+			}
+			else {
+				faceCount -= 1;
+				pSrc += 3;
+			}
         }
-        
+		
+
+		bufferSize = faceCount * 3 * sizeof(unsigned int);
+
+		// Convert indices from 8-bit to 16-bit:
+		faceBuffer = (unsigned int*)malloc(bufferSize);
+		pDest = faceBuffer;
+		const CTMuint* pSrc1 = remainFaceBuffer;
+		remainingFaces = faceCount;
+		while (remainingFaces--)
+		{
+			*pDest++ = (unsigned int)*pSrc1++;
+			*pDest++ = (unsigned int)*pSrc1++;
+			*pDest++ = (unsigned int)*pSrc1++;
+		}
         GLuint handle;
         glGenBuffers(1, &handle);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize, faceBuffer, GL_STATIC_DRAW);
         mesh.Faces = handle;
-        
-        free(faceBuffer);
+
+
+		free(remainFaceBuffer);
+       
     }
     
     ctmFreeContext(ctmContext);
 
     mesh.FaceCount = faceCount;
-
+	mesh.PositionCount = vertexCount;
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    
 
-    return mesh;
+	CTMcontext context;
+
+	// Create a new context
+	context = ctmNewContext(CTM_EXPORT);
+
+	// Define our mesh representation to OpenCTM (store references to it in
+	// the context)
+	ctmDefineMesh(context, cylidericalPositions, vertexCount, faceBuffer, faceCount, NULL);
+
+	char buf[100];
+	int timer = time(NULL);
+	sprintf(buf, "%s-%d.ctm", MODEL, timer);
+	// Save the OpenCTM file
+	ctmSave(context, buf);
+
+	// Free the context
+	ctmFreeContext(context);
+	free(zeroCenteredPositions);
+	free(cylidericalPositions);
+	free(faceBuffer);
+	return mesh;
 }
 
 GLuint CreateProgram(const char* vsKey, const char* fsKey)

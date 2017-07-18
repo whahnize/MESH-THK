@@ -20,7 +20,7 @@ extern "C" {
 // To create a cross-platform app, simply link against the Pez source and implement these four functions.
 //
 const char* PezInitialize(int width, int height); // receive window size and return window title
-void PezRender(unsigned int fbo);                 // draw scene (Pez swaps the backbuffer for you)
+void PezRender(enum CULL_FACE);                 // draw scene (Pez swaps the backbuffer for you)
 void PezUpdate(unsigned int microseconds);        // receive elapsed time (e.g., update physics)
 void PezHandleMouse(int x, int y, int action);    // handle mouse action: PEZ_DOWN, PEZ_UP, or PEZ_MOVE
     
@@ -28,15 +28,16 @@ const char* PezResourcePath(); // Implemented by the platform layer.  Returns a 
 
 // Here's the Pez configuration section.  Modify these constants to your liking!
 //
-#define PEZ_VIEWPORT_WIDTH 768
-#define PEZ_VIEWPORT_HEIGHT 1024
+#define PEZ_VIEWPORT_WIDTH 720
+#define PEZ_VIEWPORT_HEIGHT 720
 #define PEZ_ENABLE_MULTISAMPLING 0
 #define PEZ_VERTICAL_SYNC 1
 #define PEZ_GL_VERSION_TOKEN "GL2"
 #define PEZ_FORWARD_COMPATIBLE_GL 0
-
+#define MODEL "bunny"
 // Pez also defines a small handful of fixed constants and macros:
 //
+enum CULL_FACE {CULL_FRONT, CULL_BACK};
 enum {PEZ_DOWN, PEZ_UP, PEZ_MOVE};
 #define TwoPi (6.28318531f)
 #define Pi (3.14159265f)

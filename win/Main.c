@@ -9,6 +9,8 @@
 #include "../Platform.h"
 #include <wglew.h>
 
+#include <time.h>
+
 LRESULT WINAPI MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE ignoreMe0, LPSTR ignoreMe1, INT ignoreMe2)
@@ -28,8 +30,11 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE ignoreMe0, LPSTR ignoreMe1, INT ig
     LARGE_INTEGER previousTime;
     LARGE_INTEGER freqTime;
 	GLfloat pixelMap[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
+	GLfloat pixelMapFront[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
+	GLfloat pixelMapBack[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
 	GLfloat thicknessMap[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
 	GLenum err;
+	time_t timer;
     wc.hCursor = LoadCursor(0, IDC_ARROW);
     RegisterClassExA(&wc);
 
@@ -164,44 +169,42 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE ignoreMe0, LPSTR ignoreMe1, INT ig
     // -------------------
     // Start the Game Loop
     // -------------------
-    while (msg.message != WM_QUIT)
-    {
-        if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-        else
-        {
-            LARGE_INTEGER currentTime;
-            __int64 elapsed;
-            double deltaTime;
 
-            QueryPerformanceCounter(&currentTime);
-            elapsed = currentTime.QuadPart - previousTime.QuadPart;
-            deltaTime = elapsed * 1000000.0 / freqTime.QuadPart;
-            previousTime = currentTime;
-
-			
-
-            PezUpdate((unsigned int) deltaTime);
-            PezRender(0);
-			SwapBuffers(hDC);
-			glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMap);
-            //  (0,0) => bottom left corner in pixel map, upper left corner in thicknessMap
-			FILE *f = fopen("out.ppm", "wb");
-			fprintf(f, "P6\n%i %i 255\n", PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT);
-			for (int y = PEZ_VIEWPORT_HEIGHT-1; y>=0; y--) {
-				for (int x = 0; x<PEZ_VIEWPORT_WIDTH; x++) {
-					thicknessMap[PEZ_VIEWPORT_HEIGHT-y-1][x] = pixelMap[y][x];
-					fputc(pixelMap[y][x]*255, f);  // 0 .. 255
-					fputc(pixelMap[y][x] * 255, f);  // 0 .. 255
-					fputc(pixelMap[y][x] * 255, f);  // 0 .. 255
-				}
-			}
-			fclose(f);
-        }
-    }
+	PezUpdate(0);
+	PezRender(CULL_FRONT);
+	SwapBuffers(hDC);
+	PezUpdate(0);
+	PezRender(CULL_BACK);
+	SwapBuffers(hDC);
+	glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMapFront);
+	PezUpdate(0);
+	PezRender(CULL_FRONT);
+	SwapBuffers(hDC);
+	glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMapBack);
+	//  (0,0) => bottom left corner in pixel map, upper left corner in thicknessMap
+	char buf[100];
+	timer = time(NULL);
+	sprintf(buf, "%s-%d.ppm",MODEL ,timer);
+	FILE *f = fopen(buf, "wb");
+	fprintf(f, "P6\n%i %i 255\n", PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT);
+	float pv;
+	float max = -1;
+	for (int y = PEZ_VIEWPORT_HEIGHT-1; y>=0; y--) {
+		for (int x = 0; x<PEZ_VIEWPORT_WIDTH; x++) {
+			pv = pixelMapFront[y][x] - pixelMapBack[y][x];
+			if (pv > max) max = pv;
+		}
+	}
+	for (int y = PEZ_VIEWPORT_HEIGHT - 1; y >= 0; y--) {
+		for (int x = 0; x<PEZ_VIEWPORT_WIDTH; x++) {
+			pv = (pixelMapFront[y][x] - pixelMapBack[y][x])/max;
+			thicknessMap[PEZ_VIEWPORT_HEIGHT - y - 1][x] = pv;
+			fputc(pv * 255, f);  // 0 .. 255
+			fputc(pv * 255, f);  // 0 .. 255
+			fputc(pv * 255, f);  // 0 .. 255
+		}
+	}
+	fclose(f);
 
     UnregisterClassA(szName, wc.hInstance);
 

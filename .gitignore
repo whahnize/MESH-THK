@@ -1,8 +1,6 @@
-﻿**/win/Debug
+﻿/win/Debug
 /win/Release
-/win/*.ctm
-/win/*.ppm
+/win/thk_map/*.ppm
 
+*.opendb 
 *.suo
-*VC.db
-*vcxproj

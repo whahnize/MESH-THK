@@ -8,7 +8,7 @@
 #include <math.h> 
 #include <time.h>
 
-Mesh CreateMesh(const char* ctmFile)
+Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 {
     Mesh mesh = {0, 0, 0, 0};
     char qualifiedPath[256] = {0};
@@ -43,6 +43,14 @@ Mesh CreateMesh(const char* ctmFile)
 			zeroCenteredPositions[3 * vertex] = positions[3 * vertex] - avr_x;
 			zeroCenteredPositions[3 * vertex + 1] = positions[3 * vertex + 1] - avr_y;
 			zeroCenteredPositions[3 * vertex + 2] = positions[3 * vertex + 2] - avr_z;
+		}
+		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+			GLfloat x = zeroCenteredPositions[3 * vertex];
+			GLfloat y = zeroCenteredPositions[3 * vertex + 1];
+			GLfloat z = zeroCenteredPositions[3 * vertex + 2];
+			zeroCenteredPositions[3 * vertex] = rotationMatrix[0][0] * x + rotationMatrix[0][1] * y + rotationMatrix[0][2] * z;
+			zeroCenteredPositions[3 * vertex + 1] = rotationMatrix[1][0] * x + rotationMatrix[1][1] * y + rotationMatrix[1][2] * z;
+			zeroCenteredPositions[3 * vertex + 2] = rotationMatrix[2][0] * x + rotationMatrix[2][1] * y + rotationMatrix[2][2] *z;
 		}
 		GLfloat maxR = -1;
 		GLfloat minR = 987654321;
@@ -159,17 +167,17 @@ Mesh CreateMesh(const char* ctmFile)
 	// the context)
 	ctmDefineMesh(context, cylidericalPositions, vertexCount, faceBuffer, faceCount, NULL);
 
-	char buf[100];
-	int timer = time(NULL);
-	sprintf(buf, "%s-%d.ctm", MODEL, timer);
+	//char buf[100];
+	//int timer = time(NULL);
+	//sprintf(buf, "%s-%d.ctm", MODEL, timer);
 	// Save the OpenCTM file
-	ctmSave(context, buf);
+	//ctmSave(context, buf);
 
 	// Free the context
-	ctmFreeContext(context);
-	free(zeroCenteredPositions);
-	free(cylidericalPositions);
-	free(faceBuffer);
+	//ctmFreeContext(context);
+	//free(zeroCenteredPositions);
+	//free(cylidericalPositions);
+	//free(faceBuffer);
 	return mesh;
 }
 
@@ -179,6 +187,7 @@ GLuint CreateProgram(const char* vsKey, const char* fsKey)
     if (first)
     {
         glswInit();
+		glswAddPath("../../", ".glsl");
         glswAddPath("../", ".glsl");
         glswAddPath("./", ".glsl");
 
@@ -189,13 +198,11 @@ GLuint CreateProgram(const char* vsKey, const char* fsKey)
 
         first = 0;
     }
-    
     const char* vsSource = glswGetShader(vsKey);
     const char* fsSource = glswGetShader(fsKey);
     const char* msg = "Can't find %s shader: '%s'.\n";
     PezCheckCondition(vsSource != 0, msg, "vertex", vsKey);
     PezCheckCondition(fsSource != 0, msg, "fragment", fsKey);
-    
     GLint compileSuccess;
     GLchar compilerSpew[256];
 
@@ -205,14 +212,12 @@ GLuint CreateProgram(const char* vsKey, const char* fsKey)
     glGetShaderiv(vsHandle, GL_COMPILE_STATUS, &compileSuccess);
     glGetShaderInfoLog(vsHandle, sizeof(compilerSpew), 0, compilerSpew);
     PezCheckCondition(compileSuccess, "Can't compile %s:\n%s", vsKey, compilerSpew);
-    
     GLuint fsHandle = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fsHandle, 1, &fsSource, 0);
     glCompileShader(fsHandle);
     glGetShaderiv(fsHandle, GL_COMPILE_STATUS, &compileSuccess);
     glGetShaderInfoLog(fsHandle, sizeof(compilerSpew), 0, compilerSpew);
     PezCheckCondition(compileSuccess, "Can't compile %s:\n%s", fsKey, compilerSpew);
-    
     GLuint programHandle = glCreateProgram();
     glAttachShader(programHandle, vsHandle);
     glAttachShader(programHandle, fsHandle);
@@ -222,7 +227,6 @@ GLuint CreateProgram(const char* vsKey, const char* fsKey)
     glGetProgramiv(programHandle, GL_LINK_STATUS, &linkSuccess);
     glGetProgramInfoLog(programHandle, sizeof(compilerSpew), 0, compilerSpew);
     PezCheckCondition(linkSuccess, "Can't link %s with %s:\n%s", vsKey, fsKey, compilerSpew);
-    
     return programHandle;
 }
 

@@ -6,6 +6,8 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include "mex.h"
+#include "matrix.h"
 
 #ifdef __IPAD__
 #import <OpenGLES/ES2/gl.h>
@@ -19,7 +21,7 @@ extern "C" {
 // Pez is a platform abstraction layer for OpenGL; it's an extra-tiny alternative to GLUT.
 // To create a cross-platform app, simply link against the Pez source and implement these four functions.
 //
-const char* PezInitialize(int width, int height); // receive window size and return window title
+const char* PezInitialize(int width, int height, char* model, double roationMatrix[3][3]); // receive window size and return window title
 void PezRender(enum CULL_FACE);                 // draw scene (Pez swaps the backbuffer for you)
 void PezUpdate(unsigned int microseconds);        // receive elapsed time (e.g., update physics)
 void PezHandleMouse(int x, int y, int action);    // handle mouse action: PEZ_DOWN, PEZ_UP, or PEZ_MOVE
@@ -34,7 +36,6 @@ const char* PezResourcePath(); // Implemented by the platform layer.  Returns a 
 #define PEZ_VERTICAL_SYNC 1
 #define PEZ_GL_VERSION_TOKEN "GL2"
 #define PEZ_FORWARD_COMPATIBLE_GL 0
-#define MODEL "bunny"
 // Pez also defines a small handful of fixed constants and macros:
 //
 enum CULL_FACE {CULL_FRONT, CULL_BACK};

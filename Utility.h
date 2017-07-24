@@ -9,7 +9,6 @@ typedef struct MeshRec
     GLsizei FaceCount;
 } Mesh;
 
-Mesh CreateMesh(const char* ctmFile);
+Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3]);
 GLuint CreateQuad(float left, float bottom, float right, float top);
 GLuint CreateProgram(const char* vsKey, const char* fsKey);
-void SaveMesh(Mesh mesh);

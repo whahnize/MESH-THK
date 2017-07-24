@@ -167,67 +167,15 @@ void PezRender(enum CULL_FACE face)
     glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     RenderBuddha(face);
-	//glClearColor(1, 1, 1, 0);
-    //glBindFramebuffer(GL_FRAMEBUFFER, windowFbo);
-    //glClearColor(1, 1, 1, 0);
-    //glClear(GL_COLOR_BUFFER_BIT);
-    //RenderQuad();
 }
 
-const char* PezInitialize(int width, int height)
+const char* PezInitialize(int width, int height, char* model, double roationMatrix[3][3])
 {
 	char buf[100];
-	strcpy(buf, MODEL);
-    BuddhaMesh = CreateMesh(strcat(buf,".ctm"));
-    QuadVbo = CreateQuad(-1, -1, 1, 1);
-    
-#ifdef LIGHTING
-    DepthProgram = CreateProgram("Glass.Vertex", "Glass.Fragment.Lighting" SUFFIX);
-    AbsorptionProgram = CreateProgram("Glass.Vertex.Quad", "Glass.Fragment.Blit" SUFFIX);
-#else
+    BuddhaMesh = CreateMesh(model, roationMatrix);
+
     DepthProgram = CreateProgram("Glass.Vertex", "Glass.Fragment.Depth" SUFFIX);
-    //AbsorptionProgram = CreateProgram("Glass.Vertex.Quad", "Glass.Fragment.Absorption" SUFFIX);
-#endif
 
-    // Create a floating-point render target:
-    //GLuint textureHandle;
-    //glGenTextures(1, &textureHandle);
-    //glBindTexture(GL_TEXTURE_2D, textureHandle);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    
-#ifdef LIGHTING
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 768, 1024, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-#elif defined(__IPAD__)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 768, 1024, 0, GL_LUMINANCE, GL_HALF_FLOAT_OES, 0);
-#else
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 768, 1024, 0, GL_RG, GL_FLOAT, 0);
-#endif
-    
-    //PezCheckCondition(GL_NO_ERROR == glGetError(), "This passes on Mac OS X and iOS.");
-    //OffscreenTexture = textureHandle;
-    
-    //GLuint fboHandle;
-    //glGenFramebuffers(1, &fboHandle);
-    //glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
-    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureHandle, 0);
-
-#ifdef LIGHTING
-    GLuint depthRenderbuffer;
-    glGenRenderbuffers(1, &depthRenderbuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
-#endif
-
-    //PezCheckCondition(GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER), "This asserts on iOS and passes on Mac OS X.");
-    //OffscreenFbo = fboHandle;
-
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    
     // Set up the projection matrix:
     const float HalfWidth = 0.5;
     const float HalfHeight = HalfWidth * PEZ_VIEWPORT_HEIGHT / PEZ_VIEWPORT_WIDTH;

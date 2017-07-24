@@ -10,16 +10,21 @@
 #include <wglew.h>
 #include <time.h>
 
-
+int mode;
 
 LRESULT WINAPI MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+	if (nrhs != 3) {
+		printf("Check the argurments.");
+		exit(1);
+	}
+
 	double rotationMatrix[3][3];
 	char* model = mxArrayToString(prhs[0]);
 	mexPrintf("\Input file name: %s", model);
-
+	
 	mexPrintf("\n\tEuler Rotation Matrix: dim=[%d %d]", mxGetM(prhs[1]), mxGetN(prhs[1]));
 	mexPrintf("\n\t\t value=[");
 	for (int j = 0; j < mxGetM(prhs[1]); j++)
@@ -31,6 +36,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		mexPrintf(";\n\t\t\t");
 	}
 	mexPrintf("]\n\n");
+	mode = (unsigned short)*(double*)mxGetData(prhs[2]);
 
     LPCSTR szName = "Pez App";
     WNDCLASSEXA wc = { sizeof(WNDCLASSEX), CS_CLASSDC, MsgProc, 0L, 0L, GetModuleHandle(0), 0, 0, 0, 0, szName, 0 };
@@ -46,6 +52,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     MSG msg = {0};
     LARGE_INTEGER previousTime;
     LARGE_INTEGER freqTime;
+	GLfloat pixelMap[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
 	GLfloat pixelMapFront[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
 	GLfloat pixelMapBack[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
 	GLfloat thicknessMap[PEZ_VIEWPORT_WIDTH][PEZ_VIEWPORT_HEIGHT] = {};
@@ -184,51 +191,101 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // -------------------
     // Start the Game Loop
     // -------------------
+	GLfloat max;
+	switch (mode) {
+	case THK_NORMAL:
+	{
+		PezUpdate(0);
+		PezRender(CULL_FRONT);
+		SwapBuffers(hDC);
+		PezUpdate(0);
+		PezRender(CULL_BACK_FRONT);
+		glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMap);
+		SwapBuffers(hDC);
 
-	PezUpdate(0);
-	PezRender(CULL_FRONT);
-	SwapBuffers(hDC);
-	PezUpdate(0);
-	PezRender(CULL_BACK);
-	SwapBuffers(hDC);
-	glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMapFront);
-	PezUpdate(0);
-	PezRender(CULL_FRONT);
-	SwapBuffers(hDC);
-	glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMapBack);
-	//  (0,0) => bottom left corner in pixel map, upper left corner in thicknessMap
-	
-	//char buf[100];
-	//char* p;
-	//p = strtok(model, ".ctm");
-	//timer = time(NULL);
-	//sprintf(buf, "../thk_map/%s-thk-z.ppm",p);
-	//FILE *f = fopen(buf, "wb");
-	//fprintf(f, "P6\n%i %i 255\n", PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT);
-	float pv;
-	float max = -1;
-	for (int y = PEZ_VIEWPORT_HEIGHT-1; y>=0; y--) {
-		for (int x = 0; x<PEZ_VIEWPORT_WIDTH; x++) {
-			pv = pixelMapFront[y][x] - pixelMapBack[y][x];
-			if (pv > max) max = pv;
+		// Normalize;
+		max = -1;
+		for (int y = 0; y < PEZ_VIEWPORT_HEIGHT; y++) {
+			for (int x = 0; x < PEZ_VIEWPORT_WIDTH; x++) {
+				if (pixelMap[y][x] > max) max = pixelMap[y][x];
+			}
 		}
-	}
-	for (int y = PEZ_VIEWPORT_HEIGHT - 1; y >= 0; y--) {
-		for (int x = 0; x<PEZ_VIEWPORT_WIDTH; x++) {
-			pv = (pixelMapFront[y][x] - pixelMapBack[y][x])/max;
-			thicknessMap[x][PEZ_VIEWPORT_HEIGHT - y - 1] = pv;
-			//fputc(pv * 255, f);  // 0 .. 255
-			//fputc(pv * 255, f);  // 0 .. 255
-			//fputc(pv * 255, f);  // 0 .. 255
+		for (int y = 0; y < PEZ_VIEWPORT_HEIGHT; y++) {
+			for (int x = 0; x < PEZ_VIEWPORT_WIDTH; x++) {
+				pixelMap[y][x] = pixelMap[y][x] / max;
+			}
 		}
+		//  (0,0) => bottom left corner in pixel map, upper left corner in thicknessMap
+		FILE *f = fopen("thicknessMap.ppm", "wb");
+		fprintf(f, "P3\n%i %i 255\n", PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT);
+		char strFloat[60];
+		for (int y = PEZ_VIEWPORT_HEIGHT - 1; y >= 0; y--) {
+			for (int x = 0; x < PEZ_VIEWPORT_WIDTH; x++) {
+				thicknessMap[x][PEZ_VIEWPORT_HEIGHT - y - 1] = pixelMap[y][x];
+				sprintf(strFloat, "%.3f ", pixelMap[y][x] * 255);
+				fputs(strFloat, f);  // 0 .. 255
+				fputs(strFloat, f);  // 0 .. 255
+				fputs(strFloat, f);  // 0 .. 255
+			}
+		}
+		fclose(f);
+		plhs[0] = mxCreateNumericMatrix(PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, mxSINGLE_CLASS, mxREAL);
+		memcpy(mxGetPr(plhs[0]), thicknessMap, PEZ_VIEWPORT_WIDTH * PEZ_VIEWPORT_HEIGHT * sizeof(GL_FLOAT));
+		break;
 	}
-	//fclose(f);
+	case THK_Z:
+	{
+		PezUpdate(0);
+		PezRender(CULL_FRONT);
+		SwapBuffers(hDC);
+		PezUpdate(0);
+		PezRender(CULL_BACK);
+		SwapBuffers(hDC);
+		glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMapFront);
+		PezUpdate(0);
+		PezRender(CULL_FRONT);
+		SwapBuffers(hDC);
+		glReadPixels(0, 0, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, GL_RED, GL_FLOAT, pixelMapBack);
+		//  (0,0) => bottom left corner in pixel map, upper left corner in thicknessMap
 
-	// return z-along depth map to matlab
-	plhs[0]= mxCreateNumericMatrix(PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, mxSINGLE_CLASS, mxREAL);
-	memcpy(mxGetPr(plhs[0]), thicknessMap, PEZ_VIEWPORT_WIDTH * PEZ_VIEWPORT_HEIGHT * sizeof(GL_FLOAT));
-    UnregisterClassA(szName, wc.hInstance);
+		//char buf[100];
+		//char* p;
+		//p = strtok(model, ".ctm");
+		//timer = time(NULL);
+		//sprintf(buf, "../thk_map/%s-thk-z.ppm",p);
+		//FILE *f = fopen(buf, "wb");
+		//fprintf(f, "P6\n%i %i 255\n", PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT);
+		float pv;
+		max = -1;
+		for (int y = PEZ_VIEWPORT_HEIGHT - 1; y >= 0; y--) {
+			for (int x = 0; x < PEZ_VIEWPORT_WIDTH; x++) {
+				pv = pixelMapFront[y][x] - pixelMapBack[y][x];
+				if (pv > max) max = pv;
+			}
+		}
+		for (int y = PEZ_VIEWPORT_HEIGHT - 1; y >= 0; y--) {
+			for (int x = 0; x < PEZ_VIEWPORT_WIDTH; x++) {
+				pv = (pixelMapFront[y][x] - pixelMapBack[y][x]) / max;
+				thicknessMap[x][PEZ_VIEWPORT_HEIGHT - y - 1] = pv;
+				//fputc(pv * 255, f);  // 0 .. 255
+				//fputc(pv * 255, f);  // 0 .. 255
+				//fputc(pv * 255, f);  // 0 .. 255
+			}
+		}
+		//fclose(f);
 
+		// return z-along depth map to matlab
+		plhs[0] = mxCreateNumericMatrix(PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, mxSINGLE_CLASS, mxREAL);
+		memcpy(mxGetPr(plhs[0]), thicknessMap, PEZ_VIEWPORT_WIDTH * PEZ_VIEWPORT_HEIGHT * sizeof(GL_FLOAT));
+		break;
+	}
+	default: 
+	{
+		mexPrintf("Check the mode: 0 for normal thickness and 1 for z-along thickness");
+		break;
+	}
+	}
+	UnregisterClassA(szName, wc.hInstance);
 	DestroyWindow(hWnd);
 
     return;

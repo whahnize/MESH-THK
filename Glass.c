@@ -3,7 +3,6 @@
 #include <vectormath.h>
 #include <stdlib.h>
 #include <string.h>
-//#define LIGHTING
 
 static GLuint DepthProgram;
 static GLuint AbsorptionProgram;
@@ -15,7 +14,7 @@ static Mesh BuddhaMesh;
 static GLuint QuadVbo;
 
 GLfloat depthMap[PEZ_VIEWPORT_WIDTH*PEZ_VIEWPORT_HEIGHT] = {};
-
+extern int mode;
 static void LoadUniforms(GLuint program)
 {
     GLint modelview = glGetUniformLocation(program, "Modelview");
@@ -104,8 +103,9 @@ static void RenderBuddha(enum CULL_FACE face)
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE);
-    GLint radiusScale = glGetUniformLocation(DepthProgram, "RadiusScale");
-	glUniform1f(radiusScale, 1.0f);
+	GLint depthScale = glGetUniformLocation(DepthProgram, "DepthScale");
+
+	glUniform1f(depthScale, 1.0f);
 	switch (face)
 	{
 	case CULL_FRONT:
@@ -116,16 +116,16 @@ static void RenderBuddha(enum CULL_FACE face)
 		glCullFace(GL_FRONT);
 		glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
 			break;
+	case CULL_BACK_FRONT:
+		glUniform1f(depthScale, 1.0f);
+		glCullFace(GL_FRONT);
+		glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
+
+		glUniform1f(depthScale, -1.0f);
+		glCullFace(GL_BACK);
+		glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
+		break;
 	}
-
-
-	//glUniform1f(radiusScale, -1.0f);
-	//glCullFace(GL_FRONT);
-	//glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
-
-	//glUniform1f(radiusScale, -1.0f);
-	//glCullFace(GL_FRONT);
-	//glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
 	
 #endif
 	
@@ -142,25 +142,6 @@ static void RenderBuddha(enum CULL_FACE face)
 #endif
 }
 
-static void RenderQuad()
-{
-    glUseProgram(AbsorptionProgram);
-    LoadUniforms(AbsorptionProgram);
-
-    glBindBuffer(GL_ARRAY_BUFFER, QuadVbo);
-    int positionSlot = glGetAttribLocation(AbsorptionProgram, "Position");
-    glVertexAttribPointer(positionSlot, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-    glEnableVertexAttribArray(positionSlot);
-    
-    glBindTexture(GL_TEXTURE_2D, OffscreenTexture);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDisableVertexAttribArray(positionSlot);
-
-}
-
 void PezRender(enum CULL_FACE face)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, OffscreenFbo);
@@ -174,7 +155,41 @@ const char* PezInitialize(int width, int height, char* model, double roationMatr
 	char buf[100];
     BuddhaMesh = CreateMesh(model, roationMatrix);
 
-    DepthProgram = CreateProgram("Glass.Vertex", "Glass.Fragment.Depth" SUFFIX);
+	switch (mode) {
+	case THK_NORMAL:
+	{
+		DepthProgram = CreateProgram("Glass.Vertex.Normal", "Glass.Fragment.Normal" SUFFIX);
+		// Create a floating-point render target:
+		GLuint textureHandle;
+		glGenTextures(1, &textureHandle);
+		glBindTexture(GL_TEXTURE_2D, textureHandle);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 768, 1024, 0, GL_RED, GL_FLOAT, 0);
+
+
+		PezCheckCondition(GL_NO_ERROR == glGetError(), "This passes on Mac OS X and iOS.");
+		OffscreenTexture = textureHandle;
+
+		GLuint fboHandle;
+		glGenFramebuffers(1, &fboHandle);
+		glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureHandle, 0);
+
+		PezCheckCondition(GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER), "This asserts on iOS and passes on Mac OS X.");
+		OffscreenFbo = fboHandle;
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		break;
+	}
+	case THK_Z:
+		DepthProgram = CreateProgram("Glass.Vertex.Z", "Glass.Fragment.Z" SUFFIX);
+		break;
+	}
 
     // Set up the projection matrix:
     const float HalfWidth = 0.5;
@@ -195,7 +210,7 @@ void PezUpdate(unsigned int elapsedMicroseconds)
     model = M4Mul(M4MakeTranslation(offset), model);
     model = M4Mul(model, M4MakeTranslation(V3Neg(offset)));
 
-    Point3 eyePosition = P3MakeFromElems(0, 0, 10);
+    Point3 eyePosition = P3MakeFromElems(0, 10, 0);
     Point3 targetPosition = P3MakeFromElems(0, 0, 0);
     Vector3 upVector = V3MakeFromElems(0, 0, 1);
     Matrix4 view = M4MakeLookAt(eyePosition, targetPosition, upVector);

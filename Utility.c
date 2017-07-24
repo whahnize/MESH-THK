@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h> 
 #include <time.h>
-
+extern int mode;
 Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 {
     Mesh mesh = {0, 0, 0, 0};
@@ -52,34 +52,45 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 			zeroCenteredPositions[3 * vertex + 1] = rotationMatrix[1][0] * x + rotationMatrix[1][1] * y + rotationMatrix[1][2] * z;
 			zeroCenteredPositions[3 * vertex + 2] = rotationMatrix[2][0] * x + rotationMatrix[2][1] * y + rotationMatrix[2][2] *z;
 		}
-		GLfloat maxR = -1;
-		GLfloat minR = 987654321;
+		// TO DO : Refactoring 
+		if (mode == THK_Z) {
+			GLfloat maxR = -1;
+			GLfloat minR = 987654321;
 
-		GLfloat maxTheta = -1;
-		GLfloat minTheta = 987654321;
+			GLfloat maxTheta = -1;
+			GLfloat minTheta = 987654321;
 
-		GLfloat maxZ = -1;
-		GLfloat minZ = 987654321;
-		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
-			cylidericalPositions[3 * vertex] = (atan2(zeroCenteredPositions[3 * vertex + 1],zeroCenteredPositions[3 * vertex]) * 180 / Pi)/180.0; //theta; from [-pi/2,pi/2] to [-1.1]
-			cylidericalPositions[3 * vertex + 1] = zeroCenteredPositions[3 * vertex + 2]; // z
-			cylidericalPositions[3 * vertex + 2] = sqrt(pow(zeroCenteredPositions[3 * vertex],2)+ pow(zeroCenteredPositions[3 * vertex+1], 2)); // r
+			GLfloat maxZ = -1;
+			GLfloat minZ = 987654321;
+			for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+				cylidericalPositions[3 * vertex] = (atan2(zeroCenteredPositions[3 * vertex + 1], zeroCenteredPositions[3 * vertex]) * 180 / Pi) / 180.0; //theta; from [-pi/2,pi/2] to [-1.1]
+				cylidericalPositions[3 * vertex + 1] = zeroCenteredPositions[3 * vertex + 2]; // z
+				cylidericalPositions[3 * vertex + 2] = sqrt(pow(zeroCenteredPositions[3 * vertex], 2) + pow(zeroCenteredPositions[3 * vertex + 1], 2)); // r
 
-			if (cylidericalPositions[3 * vertex] > maxTheta) maxTheta = cylidericalPositions[3 * vertex];
-			if (cylidericalPositions[3 * vertex] < minTheta) minTheta = cylidericalPositions[3 * vertex];
-			if (cylidericalPositions[3 * vertex+1] > maxZ) maxZ = cylidericalPositions[3 * vertex+1];
-			if (cylidericalPositions[3 * vertex+1] < minZ) minZ = cylidericalPositions[3 * vertex+1];
-			if (cylidericalPositions[3 * vertex + 2] > maxR) maxR = cylidericalPositions[3 * vertex + 2];
-			if (cylidericalPositions[3 * vertex + 2] < minR) minR = cylidericalPositions[3 * vertex + 2];
-		}
-		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
-			cylidericalPositions[3 * vertex + 2] = cylidericalPositions[3 * vertex + 2] - minR;
-			cylidericalPositions[3 * vertex + 2] = cylidericalPositions[3 * vertex + 2]/1.25*(maxR-minR);
+				if (cylidericalPositions[3 * vertex] > maxTheta) maxTheta = cylidericalPositions[3 * vertex];
+				if (cylidericalPositions[3 * vertex] < minTheta) minTheta = cylidericalPositions[3 * vertex];
+				if (cylidericalPositions[3 * vertex + 1] > maxZ) maxZ = cylidericalPositions[3 * vertex + 1];
+				if (cylidericalPositions[3 * vertex + 1] < minZ) minZ = cylidericalPositions[3 * vertex + 1];
+				if (cylidericalPositions[3 * vertex + 2] > maxR) maxR = cylidericalPositions[3 * vertex + 2];
+				if (cylidericalPositions[3 * vertex + 2] < minR) minR = cylidericalPositions[3 * vertex + 2];
+			}
+			for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+				cylidericalPositions[3 * vertex + 2] = cylidericalPositions[3 * vertex + 2] - minR;
+				cylidericalPositions[3 * vertex + 2] = cylidericalPositions[3 * vertex + 2] / 1.25*(maxR - minR);
+			}
 		}
         GLsizeiptr size = vertexCount * sizeof(float) * 3;
         glGenBuffers(1, &handle);
         glBindBuffer(GL_ARRAY_BUFFER, handle);
-        glBufferData(GL_ARRAY_BUFFER, size, cylidericalPositions, GL_STATIC_DRAW);
+		switch (mode) {
+		case THK_NORMAL:
+			glBufferData(GL_ARRAY_BUFFER, size, zeroCenteredPositions, GL_STATIC_DRAW);
+			break;
+		case THK_Z:
+			glBufferData(GL_ARRAY_BUFFER, size, cylidericalPositions, GL_STATIC_DRAW);
+			break;
+		}
+       
         mesh.Positions = handle;
     }
     
@@ -88,6 +99,7 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 	unsigned int* faceBuffer;
     if (normals) {
         GLuint handle;
+
         GLsizeiptr size = vertexCount * sizeof(float) * 3;
         glGenBuffers(1, &handle);
         glBindBuffer(GL_ARRAY_BUFFER, handle);
@@ -103,10 +115,13 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
         
         // Convert indices from 8-bit to 16-bit:
         unsigned int* remainFaceBuffer = (unsigned int*) malloc(bufferSize);
+		
         unsigned int* pDest = remainFaceBuffer;
         const CTMuint* pSrc = indices;
         unsigned int remainingFaces = faceCount;
-        while (remainingFaces--)
+		
+		// TO DO: refactoring ; hard to read 
+		while (remainingFaces--)
 		{
 			// boundaryIndicator indicates whether a face is on a boundary line of spliited model. When a face is on boundary line, its value is set to 1 or -1.
 			int boundaryIndicator = 0;
@@ -114,7 +129,7 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 				if (cylidericalPositions[3 * *(pSrc + vertice)] > 0) boundaryIndicator += 1;
 				else boundaryIndicator -= 1;
 			}
-			if (!(boundaryIndicator == -1 || boundaryIndicator == 1) || pow(cylidericalPositions[3 * *pSrc],2)<0.5) { // when a face is not on the boundary
+			if (mode==THK_NORMAL || !(boundaryIndicator == -1 || boundaryIndicator == 1) || pow(cylidericalPositions[3 * *pSrc], 2) < 0.5) { // when mode is normal or a face is not on the boundary
 				*pDest++ = (unsigned int)*pSrc++;
 				*pDest++ = (unsigned int)*pSrc++;
 				*pDest++ = (unsigned int)*pSrc++;
@@ -123,8 +138,7 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 				faceCount -= 1;
 				pSrc += 3;
 			}
-        }
-		
+		}
 
 		bufferSize = faceCount * 3 * sizeof(unsigned int);
 
@@ -165,19 +179,19 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 
 	// Define our mesh representation to OpenCTM (store references to it in
 	// the context)
-	ctmDefineMesh(context, cylidericalPositions, vertexCount, faceBuffer, faceCount, NULL);
+	ctmDefineMesh(context, zeroCenteredPositions, vertexCount, faceBuffer, faceCount, NULL);
 
-	//char buf[100];
-	//int timer = time(NULL);
-	//sprintf(buf, "%s-%d.ctm", MODEL, timer);
-	// Save the OpenCTM file
+	char buf[100];
+	int timer = time(NULL);
+	sprintf(buf, "%s-%d.ctm", ctmFile, timer);
+	 //Save the OpenCTM file
 	//ctmSave(context, buf);
 
 	// Free the context
-	//ctmFreeContext(context);
-	//free(zeroCenteredPositions);
-	//free(cylidericalPositions);
-	//free(faceBuffer);
+	ctmFreeContext(context);
+	free(zeroCenteredPositions);
+	free(cylidericalPositions);
+	free(faceBuffer);
 	return mesh;
 }
 
@@ -228,24 +242,4 @@ GLuint CreateProgram(const char* vsKey, const char* fsKey)
     glGetProgramInfoLog(programHandle, sizeof(compilerSpew), 0, compilerSpew);
     PezCheckCondition(linkSuccess, "Can't link %s with %s:\n%s", vsKey, fsKey, compilerSpew);
     return programHandle;
-}
-
-GLuint CreateQuad(float left, float bottom, float right, float top)
-{
-    float quad[] = {
-        left, bottom,
-        left, top,
-        right, top,
-        right, top,
-        right, bottom,
-        left, bottom,
-    };
-
-    GLuint handle;
-    glGenBuffers(1, &handle);
-    glBindBuffer(GL_ARRAY_BUFFER, handle);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quad), &quad[0], GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    return handle;
 }

@@ -38,7 +38,8 @@ const char* PezResourcePath(); // Implemented by the platform layer.  Returns a 
 #define PEZ_FORWARD_COMPATIBLE_GL 0
 // Pez also defines a small handful of fixed constants and macros:
 //
-enum CULL_FACE {CULL_FRONT, CULL_BACK};
+enum CULL_FACE {CULL_FRONT, CULL_BACK, CULL_BACK_FRONT};
+enum { THK_NORMAL, THK_Z};
 enum {PEZ_DOWN, PEZ_UP, PEZ_MOVE};
 #define TwoPi (6.28318531f)
 #define Pi (3.14159265f)

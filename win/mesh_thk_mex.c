@@ -52,10 +52,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     MSG msg = {0};
     LARGE_INTEGER previousTime;
     LARGE_INTEGER freqTime;
-	GLfloat pixelMap[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
-	GLfloat pixelMapFront[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
-	GLfloat pixelMapBack[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {};
-	GLfloat thicknessMap[PEZ_VIEWPORT_WIDTH][PEZ_VIEWPORT_HEIGHT] = {};
+	GLfloat pixelMap[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {0,};
+	GLfloat pixelMapFront[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {0,};
+	GLfloat pixelMapBack[PEZ_VIEWPORT_HEIGHT][PEZ_VIEWPORT_WIDTH] = {0,};
+	GLfloat thicknessMap[PEZ_VIEWPORT_WIDTH][PEZ_VIEWPORT_HEIGHT] = {0,};
 	GLenum err;
 	time_t timer;
     wc.hCursor = LoadCursor(0, IDC_ARROW);
@@ -216,19 +216,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 			}
 		}
 		//  (0,0) => bottom left corner in pixel map, upper left corner in thicknessMap
-		FILE *f = fopen("thicknessMap.ppm", "wb");
-		fprintf(f, "P3\n%i %i 255\n", PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT);
-		char strFloat[60];
+		//FILE *f = fopen("thicknessMap.ppm", "wb");
+		//fprintf(f, "P3\n%i %i 255\n", PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT);
+		//char strFloat[60];
 		for (int y = PEZ_VIEWPORT_HEIGHT - 1; y >= 0; y--) {
 			for (int x = 0; x < PEZ_VIEWPORT_WIDTH; x++) {
 				thicknessMap[x][PEZ_VIEWPORT_HEIGHT - y - 1] = pixelMap[y][x];
-				sprintf(strFloat, "%.3f ", pixelMap[y][x] * 255);
-				fputs(strFloat, f);  // 0 .. 255
-				fputs(strFloat, f);  // 0 .. 255
-				fputs(strFloat, f);  // 0 .. 255
+				//sprintf(strFloat, "%.3f ", pixelMap[y][x] * 255);
+				//fputs(strFloat, f);  // 0 .. 255
+				//fputs(strFloat, f);  // 0 .. 255
+				//fputs(strFloat, f);  // 0 .. 255
 			}
 		}
-		fclose(f);
+		//fclose(f);
 		plhs[0] = mxCreateNumericMatrix(PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, mxSINGLE_CLASS, mxREAL);
 		memcpy(mxGetPr(plhs[0]), thicknessMap, PEZ_VIEWPORT_WIDTH * PEZ_VIEWPORT_HEIGHT * sizeof(GL_FLOAT));
 		break;

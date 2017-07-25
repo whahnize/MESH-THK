@@ -7,7 +7,6 @@
 #include <string.h>
 #include <math.h> 
 #include <time.h>
-extern int mode;
 Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 {
     Mesh mesh = {0, 0, 0, 0};
@@ -201,6 +200,7 @@ GLuint CreateProgram(const char* vsKey, const char* fsKey)
     if (first)
     {
         glswInit();
+		glswAddPath("../../../", ".glsl");
 		glswAddPath("../../", ".glsl");
         glswAddPath("../", ".glsl");
         glswAddPath("./", ".glsl");

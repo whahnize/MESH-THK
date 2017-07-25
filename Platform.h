@@ -36,6 +36,7 @@ const char* PezResourcePath(); // Implemented by the platform layer.  Returns a 
 #define PEZ_VERTICAL_SYNC 1
 #define PEZ_GL_VERSION_TOKEN "GL2"
 #define PEZ_FORWARD_COMPATIBLE_GL 0
+extern int mode;
 // Pez also defines a small handful of fixed constants and macros:
 //
 enum CULL_FACE {CULL_FRONT, CULL_BACK, CULL_BACK_FRONT};

@@ -13,8 +13,7 @@ static GLuint OffscreenTexture;
 static Mesh BuddhaMesh;
 static GLuint QuadVbo;
 
-GLfloat depthMap[PEZ_VIEWPORT_WIDTH*PEZ_VIEWPORT_HEIGHT] = {};
-extern int mode;
+GLfloat depthMap[PEZ_VIEWPORT_WIDTH*PEZ_VIEWPORT_HEIGHT] = {0,};
 static void LoadUniforms(GLuint program)
 {
     GLint modelview = glGetUniformLocation(program, "Modelview");

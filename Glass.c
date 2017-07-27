@@ -115,15 +115,6 @@ static void RenderBuddha(enum CULL_FACE face)
 		glCullFace(GL_FRONT);
 		glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
 			break;
-	case CULL_BACK_FRONT:
-		glUniform1f(depthScale, 1.0f);
-		glCullFace(GL_FRONT);
-		glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
-
-		glUniform1f(depthScale, -1.0f);
-		glCullFace(GL_BACK);
-		glDrawElements(GL_TRIANGLES, BuddhaMesh.FaceCount * 3, GL_UNSIGNED_INT, 0);
-		break;
 	}
 	
 #endif
@@ -167,7 +158,7 @@ const char* PezInitialize(int width, int height, char* model, double roationMatr
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 768, 1024, 0, GL_RED, GL_FLOAT, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, 0, GL_RED, GL_FLOAT, 0);
 
 
 		PezCheckCondition(GL_NO_ERROR == glGetError(), "This passes on Mac OS X and iOS.");

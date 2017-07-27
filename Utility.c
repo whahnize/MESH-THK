@@ -43,6 +43,17 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 			zeroCenteredPositions[3 * vertex + 1] = positions[3 * vertex + 1] - avr_y;
 			zeroCenteredPositions[3 * vertex + 2] = positions[3 * vertex + 2] - avr_z;
 		}
+		GLfloat maxDis = -1;
+		GLfloat dis;
+		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+			dis = sqrt(pow(zeroCenteredPositions[3 * vertex], 2) + pow(zeroCenteredPositions[3 * vertex + 1], 2) + pow(zeroCenteredPositions[3 * vertex + 2], 2));
+			if (dis > maxDis) maxDis = dis;
+		}
+		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
+			zeroCenteredPositions[3 * vertex] = zeroCenteredPositions[3 * vertex]/ maxDis;
+			zeroCenteredPositions[3 * vertex + 1] = zeroCenteredPositions[3 * vertex + 1] / maxDis;
+			zeroCenteredPositions[3 * vertex + 2] = zeroCenteredPositions[3 * vertex + 2] / maxDis;
+		}
 		for (GLuint vertex = 0; vertex < vertexCount; vertex++) {
 			GLfloat x = zeroCenteredPositions[3 * vertex];
 			GLfloat y = zeroCenteredPositions[3 * vertex + 1];
@@ -178,7 +189,8 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 
 	// Define our mesh representation to OpenCTM (store references to it in
 	// the context)
-	ctmDefineMesh(context, zeroCenteredPositions, vertexCount, faceBuffer, faceCount, NULL);
+	if(mode == THK_NORMAL) ctmDefineMesh(context, zeroCenteredPositions, vertexCount, faceBuffer, faceCount, NULL);
+	else ctmDefineMesh(context, cylidericalPositions, vertexCount, faceBuffer, faceCount, NULL);
 
 	char buf[100];
 	int timer = time(NULL);

@@ -30,8 +30,8 @@ const char* PezResourcePath(); // Implemented by the platform layer.  Returns a 
 
 // Here's the Pez configuration section.  Modify these constants to your liking!
 //
-#define PEZ_VIEWPORT_WIDTH 720
-#define PEZ_VIEWPORT_HEIGHT 720
+#define PEZ_VIEWPORT_WIDTH 2048
+#define PEZ_VIEWPORT_HEIGHT 2048
 #define PEZ_ENABLE_MULTISAMPLING 0
 #define PEZ_VERTICAL_SYNC 1
 #define PEZ_GL_VERSION_TOKEN "GL2"
@@ -39,7 +39,7 @@ const char* PezResourcePath(); // Implemented by the platform layer.  Returns a 
 extern int mode;
 // Pez also defines a small handful of fixed constants and macros:
 //
-enum CULL_FACE {CULL_FRONT, CULL_BACK, CULL_BACK_FRONT};
+enum CULL_FACE {CULL_FRONT, CULL_BACK};
 enum { THK_NORMAL, THK_Z};
 enum {PEZ_DOWN, PEZ_UP, PEZ_MOVE};
 #define TwoPi (6.28318531f)

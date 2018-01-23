@@ -17,3 +17,6 @@ This visual studio project calculates **normalized thickness of mesh** and retur
 ## Output
 
  1. 2048x2048 normalized depth map matrix
+<!--stackedit_data:
+eyJoaXN0b3J5IjpbMTE4NzgzMzc5OF19
+-->

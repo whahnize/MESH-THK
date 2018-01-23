@@ -5,7 +5,7 @@ This visual studio project calculates **normalized thickness of mesh** and retur
 |Normal depth|Z-axis depth map  | 
 |--|--|
 |The thickness of mesh like the X-ray |The thickness of rolled out mesh along the z-axis|
-|![the normal thickness](./img/normal.png)|![the z-axis thickness]((./img/z-axis.png)|
+|![the normal thickness](./img/normal.png)|![the z-axis thickness](./img/z-axis.png)|
 
 ## Input 
  1. (array)Full path to model(only .ctm format is supported)

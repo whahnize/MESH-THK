@@ -11,9 +11,7 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 {
     Mesh mesh = {0, 0, 0, 0};
     char qualifiedPath[256] = {0};
-    strcpy(qualifiedPath, PezResourcePath());
-    strcat(qualifiedPath, "/model/");
-    strcat(qualifiedPath, ctmFile);
+	strcpy(qualifiedPath, ctmFile);
 
     // Open the CTM file:
     CTMcontext ctmContext = ctmNewContext(CTM_IMPORT);
@@ -169,7 +167,6 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize, faceBuffer, GL_STATIC_DRAW);
         mesh.Faces = handle;
 
-
 		free(remainFaceBuffer);
        
     }
@@ -195,7 +192,7 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 	char buf[100];
 	int timer = time(NULL);
 	sprintf(buf, "%s-%d.ctm", ctmFile, timer);
-	 //Save the OpenCTM file
+	//Save the OpenCTM file if needed
 	//ctmSave(context, buf);
 
 	// Free the context
@@ -216,12 +213,6 @@ GLuint CreateProgram(const char* vsKey, const char* fsKey)
 		glswAddPath("../../", ".glsl");
         glswAddPath("../", ".glsl");
         glswAddPath("./", ".glsl");
-
-        char qualifiedPath[128];
-        strcpy(qualifiedPath, PezResourcePath());
-        strcat(qualifiedPath, "/");
-        glswAddPath(qualifiedPath, ".glsl");
-
         first = 0;
     }
     const char* vsSource = glswGetShader(vsKey);

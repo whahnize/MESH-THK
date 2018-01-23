@@ -103,7 +103,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>GLEW_STATIC;OPENCTM_STATIC;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../lib/glew;../lib/openctm;../lib/glsw;../lib/vectormath;C:\Program Files (x86)\MATLAB\R2015b\extern\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../lib/glew;../lib/openctm;../lib/glsw;../lib/vectormath;C:\Program Files\MATLAB\R2017a\extern\include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>

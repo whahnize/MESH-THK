@@ -10,5 +10,4 @@ typedef struct MeshRec
 } Mesh;
 
 Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3]);
-GLuint CreateQuad(float left, float bottom, float right, float top);
 GLuint CreateProgram(const char* vsKey, const char* fsKey);

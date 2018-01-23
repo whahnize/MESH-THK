@@ -17,28 +17,28 @@ LRESULT WINAPI MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 	if (nrhs != 3) {
-		printf("Check the argurments.");
-		exit(1);
+		mexPrintf("3 arguments are needed\n");
+		mexPrintf("1.	(array)Full path to model (ex:'D:\\dev\\MESH-THK\\model\\venus.ctm','D:/dev/MESH-THK/model/bunny.ctm', and 'D:\dev\MESH-THK\model\venus.ctm' are acceptable)\n");
+		mexPrintf("2.	(matrix)Euler rotation matrix (ex: eye(3))\n");
+		mexPrintf("3.	(int)Thickness mode (0: nomal thickness, 1: z-axis depth map)\n\n");
+		return;
 	}
-	int max_texture_size;
-	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-	//mexPrintf("MAX TEXTURE SIZE %d\n", max_texture_size);
 
 	double rotationMatrix[3][3];
 	char* model = mxArrayToString(prhs[0]);
-	/*mexPrintf("\Input file name: %s", model);
+	mexPrintf("\Input file name: %s", model);
 	
 	mexPrintf("\n\tEuler Rotation Matrix: dim=[%d %d]", mxGetM(prhs[1]), mxGetN(prhs[1]));
-	mexPrintf("\n\t\t value=[");*/
+	mexPrintf("\n\t\t value=[");
 	for (int j = 0; j < mxGetM(prhs[1]); j++)
 	{
 		for (int k = 0; k < mxGetN(prhs[1]); k++) {
 			rotationMatrix[j][k] = mxGetPr(prhs[1])[k + j*mxGetN(prhs[1])];
-			//mexPrintf("%lf ", mxGetPr(prhs[1])[k + j*mxGetN(prhs[1])]);
+			mexPrintf("%lf ", mxGetPr(prhs[1])[k + j*mxGetN(prhs[1])]);
 		}
-		//mexPrintf(";\n\t\t\t");
+		mexPrintf(";\n\t\t\t");
 	}
-	//mexPrintf("]\n\n");
+	mexPrintf("]\n\n");
 	mode = (unsigned short)*(double*)mxGetData(prhs[2]);
 
     LPCSTR szName = "Pez App";
@@ -184,10 +184,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         wglMakeCurrent(hDC, hRC);
     }
 
-    {
-        const char* szWindowTitle = PezInitialize(PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, model, rotationMatrix);
-        SetWindowTextA(hWnd, szWindowTitle);
-    }
+    
+    const char* szWindowTitle = PezInitialize(PEZ_VIEWPORT_WIDTH, PEZ_VIEWPORT_HEIGHT, model, rotationMatrix);
+    SetWindowTextA(hWnd, szWindowTitle);
+   
 
     QueryPerformanceFrequency(&freqTime);
     QueryPerformanceCounter(&previousTime);
@@ -422,7 +422,3 @@ int PezIsPressing(char key)
     return GetAsyncKeyState(key) & 0x0001;
 }
 
-const char* PezResourcePath()
-{
-    return "../..";
-}

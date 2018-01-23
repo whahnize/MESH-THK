@@ -25,8 +25,6 @@ const char* PezInitialize(int width, int height, char* model, double roationMatr
 void PezRender(enum CULL_FACE);                 // draw scene (Pez swaps the backbuffer for you)
 void PezUpdate(unsigned int microseconds);        // receive elapsed time (e.g., update physics)
 void PezHandleMouse(int x, int y, int action);    // handle mouse action: PEZ_DOWN, PEZ_UP, or PEZ_MOVE
-    
-const char* PezResourcePath(); // Implemented by the platform layer.  Returns a string like ".."
 
 // Here's the Pez configuration section.  Modify these constants to your liking!
 //

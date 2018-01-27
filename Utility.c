@@ -7,8 +7,15 @@
 #include <string.h>
 #include <math.h> 
 #include <time.h>
+
 Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 {
+	/* 
+		This function creates proper mesh depending on the thickness mode.
+		For normal mode, it just normalizes the size and relocate the mesh to be zero centered mesh.
+		For Z-axis mode, it tears mesh up and construct new mesh rolled out 
+	*/
+
     Mesh mesh = {0, 0, 0, 0};
     char qualifiedPath[256] = {0};
 	strcpy(qualifiedPath, ctmFile);
@@ -187,13 +194,13 @@ Mesh CreateMesh(const char* ctmFile, double rotationMatrix[3][3])
 	// Define our mesh representation to OpenCTM (store references to it in
 	// the context)
 	if(mode == THK_NORMAL) ctmDefineMesh(context, zeroCenteredPositions, vertexCount, faceBuffer, faceCount, NULL);
-	else ctmDefineMesh(context, cylidericalPositions, vertexCount, faceBuffer, faceCount, NULL);
-
-	char buf[100];
-	int timer = time(NULL);
-	sprintf(buf, "%s-%d.ctm", ctmFile, timer);
-	//Save the OpenCTM file if needed
-	//ctmSave(context, buf);
+	else if(mode == THK_Z) ctmDefineMesh(context, cylidericalPositions, vertexCount, faceBuffer, faceCount, NULL);
+	
+	/* Save the OpenCTM file if needed */
+	//char buf[100];
+	// int timer = time(NULL);
+	// sprintf(buf, "%s-%d.ctm", ctmFile, timer);
+	// ctmSave(context, buf);
 
 	// Free the context
 	ctmFreeContext(context);
